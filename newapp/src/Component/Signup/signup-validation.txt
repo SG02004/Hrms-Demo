@@ -1,0 +1,80 @@
+Signup validation example
+
+Add this state in Signup.jsx:
+const [error, setError] = useState({});
+
+Add this function in Signup.jsx:
+const handleValidate = (formData) => {
+  const formError = {};
+
+  if (!formData.name) {
+    formError.name = "Name is required";
+  }
+
+  if (!formData.email) {
+    formError.email = "Email is required";
+  }
+
+  if (!formData.password) {
+    formError.password = "Password is required";
+  }
+
+  if (!formData.confirmpassword) {
+    formError.confirmpassword = "Confirm password is required";
+  }
+
+  if (
+    formData.password &&
+    formData.confirmpassword &&
+    formData.password !== formData.confirmpassword
+  ) {
+    formError.confirmpassword = "Passwords do not match";
+  }
+
+  setError(formError);
+
+  if (
+    !formData.name ||
+    !formData.email ||
+    !formData.password ||
+    !formData.confirmpassword ||
+    formData.password !== formData.confirmpassword
+  ) {
+    console.log("Validation errors:", formError);
+    return;
+  }
+
+  console.log("signup data", formData);
+};
+
+Use it on submit:
+const handleClick = (e) => {
+  e.preventDefault();
+  handleValidate(formData);
+};
+
+Then add:
+<form onSubmit={handleClick}>
+
+
+
+
+
+
+
+Authentication 
+localstorage - token save hogs to 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

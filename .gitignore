@@ -1,0 +1,17 @@
+# Ignore node_modules everywhere
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+**/.env
+
+# Build folders
+dist/
+build/
+
+# Logs
+*.log
+
+.git_backup/
+**/.git_backup/

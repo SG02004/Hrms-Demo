@@ -1,0 +1,324 @@
+Code logic notes
+
+1) Login validation fix
+
+Problem:
+The Login button had this code:
+onClick={() => {
+  navigate("/panel")
+}}
+
+Because of that, clicking Login ran navigate("/panel") immediately.
+So it went to the panel page even if email and password were empty.
+That onClick bypassed the validation flow.
+
+Correct solution:
+- Remove onClick from the Login button
+- Keep onSubmit on the form
+- Call navigate("/panel") only after validation passes
+
+Use this pattern in Login.jsx:
+
+const handleClick = (e) => {
+  e.preventDefault();
+  handleValidate(formData);
+};
+
+const handleValidate = (formData) => {
+  const formError = {};
+
+  if (!formData.email) {
+    formError.email = "Email is required";
+  }
+
+  if (!formData.password) {
+    formError.password = "Password is required";
+  }
+
+  setError(formError);
+
+  if (!formData.email || !formData.password) {
+    console.log("Validation errors:", formError);
+    return;
+  }
+
+  console.log("api data", formData);
+  navigate("/panel");
+};
+
+2) Employees.jsx review and dynamic table guide
+
+What is happening now:
+- You have only one object state: empData
+- As you type, empData changes
+- The table shows only one row
+- So every new form fill replaces the same row instead of adding a new employee
+
+To make it dynamic, you need two states:
+1. formData -> stores the current input values
+2. employees -> stores the list of added employees
+
+Beginner-friendly example:
+
+const [formData, setFormData] = useState({
+  empName: "",
+  email: "",
+  department: "",
+  joiningDate: "",
+  empDob: "",
+  empDesignation: "",
+  empSalary: "",
+  empAddress: "",
+});
+
+const [employees, setEmployees] = useState([]);
+
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setFormData({
+    ...formData,
+    [name]: value,
+  });
+};
+
+const handleSubmit = (e) => {
+  e.preventDefault();
+
+  const newEmployee = {
+    ...formData,
+    id: Date.now(),
+  };
+
+  setEmployees([...employees, newEmployee]);
+
+  setFormData({
+    empName: "",
+    email: "",
+    department: "",
+    joiningDate: "",
+    empDob: "",
+    empDesignation: "",
+    empSalary: "",
+    empAddress: "",
+  });
+};
+
+Then connect your form like this:
+
+<form onSubmit={handleSubmit}>
+
+And make every input controlled like this:
+
+<Input
+  name="empName"
+  value={formData.empName}
+  onChange={handleChange}
+/>
+
+Then render the table with map:
+
+<tbody>
+  {employees.map((employee) => (
+    <tr key={employee.id}>
+      <td>{employee.empName}</td>
+      <td>{employee.email}</td>
+      <td>{employee.department}</td>
+      <td>{employee.joiningDate}</td>
+      <td>{employee.empDob}</td>
+      <td>{employee.empDesignation}</td>
+      <td>{employee.empSalary}</td>
+      <td>{employee.empAddress}</td>
+    </tr>
+  ))}
+</tbody>
+
+Important idea:
+- formData is for typing
+- employees is for saved rows
+- handleSubmit pushes one new object into the employees array
+- map() shows every employee as a table row
+
+Problems to fix in your current Employees.jsx:
+- Use className instead of class in JSX
+- empAdress should be empAddress so it matches the table field
+- Some id values repeat; give each input a proper unique id
+- console.log(empData) right after setEmpData may show old data because state updates are async
+
+Simple flow:
+User types in form
+-> formData updates
+User clicks Add Employee
+-> handleSubmit runs
+-> newEmployee object is created
+-> setEmployees adds it to array
+-> table re-renders with a new row
+
+3) Edit and delete buttons in action column
+
+Goal:
+- When user clicks Edit, open the same form with that employee's data already filled in
+- When user clicks Delete, remove that employee from the table
+
+What extra state you need:
+
+const [open, setOpen] = useState(false);
+const [editId, setEditId] = useState(null);
+
+What these do:
+- open controls whether the dialog is open
+- editId stores which employee is being edited
+- if editId is null, the form is adding a new employee
+- if editId has a value, the form is updating an old employee
+
+Edit button logic:
+
+const handleEdit = (employee) => {
+  setFormData(employee);
+  setEditId(employee.id);
+  setOpen(true);
+};
+
+Delete button logic:
+
+const handleDelete = (id) => {
+  const updatedEmployees = employees.filter((employee) => employee.id !== id);
+  setEmployees(updatedEmployees);
+};
+
+Updated handleSubmit logic for add + edit:
+
+const handleSubmit = (e) => {
+  e.preventDefault();
+
+  if (editId !== null) {
+    const updatedEmployees = employees.map((employee) =>
+      employee.id === editId ? { ...formData, id: editId } : employee
+    );
+
+    setEmployees(updatedEmployees);
+    setEditId(null);
+  } else {
+    const newEmployee = {
+      ...formData,
+      id: Date.now(),
+    };
+
+    setEmployees([...employees, newEmployee]);
+  }
+
+  setFormData({
+    empName: "",
+    email: "",
+    department: "",
+    joiningDate: "",
+    empDob: "",
+    empDesignation: "",
+    empSalary: "",
+    empAddress: "",
+  });
+
+  setOpen(false);
+};
+
+4) Focus fix using your current Employees.jsx logic
+
+Your current state names are:
+- empData -> current values typed in the form
+- empFormData -> this should become the list of saved employees
+
+Right now Add Employee is not working because:
+- handleCLick is not connected to the form submit
+- empFormData is an object, but it should be an array if you want multiple rows
+- the table is still showing empData instead of saved data
+
+Keep your current logic style, but change it like this:
+
+const [empData, setEmpData] = useState({
+  empName: "",
+  email: "",
+  department: "",
+  joiningDate: "",
+  empDob: "",
+  empDesignation: "",
+  empSalary: "",
+  empAddress: "",
+});
+
+const [empFormData, setEmpFormData] = useState([]);
+
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setEmpData({
+    ...empData,
+    [name]: value,
+  });
+};
+
+const handleCLick = (e) => {
+  e.preventDefault();
+
+  const newEmployee = {
+    ...empData,
+    id: Date.now(),
+  };
+
+  setEmpFormData([...empFormData, newEmployee]);
+
+  setEmpData({
+    empName: "",
+    email: "",
+    department: "",
+    joiningDate: "",
+    empDob: "",
+    empDesignation: "",
+    empSalary: "",
+    empAddress: "",
+  });
+};
+
+Then connect the form like this:
+
+<form onSubmit={handleCLick}>
+
+Make inputs controlled like this:
+
+<Input
+  id="name-1"
+  name="empName"
+  value={empData.empName}
+  onChange={handleChange}
+/>
+
+Important:
+Use empAddress everywhere.
+Do not use empAdress.
+
+Then show saved employees from empFormData:
+
+<tbody>
+  {empFormData.map((employee) => (
+    <tr key={employee.id}>
+      <td>{employee.empName}</td>
+      <td>{employee.email}</td>
+      <td>{employee.department}</td>
+      <td>{employee.joiningDate}</td>
+      <td>{employee.empDob}</td>
+      <td>{employee.empDesignation}</td>
+      <td>{employee.empSalary}</td>
+      <td>{employee.empAddress}</td>
+      <td>Action</td>
+    </tr>
+  ))}
+</tbody>
+
+Why this matches your current code better:
+- you still keep empData
+- you still keep empFormData
+- you still keep handleChange
+- you still keep handleCLick
+- only one big change: empFormData becomes an array of saved rows
+
+Beginner mental model for your version:
+- empData = what is inside the form right now
+- empFormData = all employees saved after clicking Add Employee
+- handleCLick = moves one employee from empData into empFormData
